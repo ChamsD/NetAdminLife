@@ -1,0 +1,11 @@
+﻿@using NetAdminLte.Components  
+@using NetAdminLte.Models
+@model NetAdminLte.Pages.Auth.AuthModel
+@{  
+    Layout = "/Pages/Shared/Auth/_Layout.cshtml";  
+    ViewData["Title"] = "Vault";  
+}
+<component type="typeof(Login)"
+           render-mode="ServerPrerendered"
+           param-Model="@Model"
+           param-Title="@ViewData["Title"]" />
