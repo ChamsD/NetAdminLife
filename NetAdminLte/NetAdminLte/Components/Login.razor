@@ -10,9 +10,9 @@
 
         <div class="card-body login-card-body">
             <p class="login-box-msg">Sign in to start your session</p>
-            <form asp-controller="Auth" asp-action="Login" method="post" >
+            <form action="/auth/login" method="post" >
                 <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Email" name="email"/>
+                    <input type="text" class="form-control" placeholder="Email" name="Username"/>
                     <div class="input-group-text"><span class="bi bi-envelope"></span></div>
                 </div>
                 <div class="input-group mb-3">

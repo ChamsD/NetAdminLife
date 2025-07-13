@@ -1,5 +1,6 @@
 using NetAdminLte.Models;
 using NetAdminLte.Repositories;
+using Serilog;
 using WebApplicationTrial2.Models;
 namespace NetAdminLte.Services;
 public class AuthService

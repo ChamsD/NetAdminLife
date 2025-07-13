@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using NetAdminLte.Models;
-using System.Configuration;
+using Serilog;
 
 namespace NetAdminLte.Common;
 public class AppDbContext : DbContext
@@ -22,6 +22,7 @@ public class AppDbContext : DbContext
         if (!optionsBuilder.IsConfigured)
         {
             string useRemote = Environment.GetEnvironmentVariable("USE_REMOTE");
+            Log.Information($"Remote status db connection {useRemote}");
             string connStr = useRemote == "true"
                 ? _configuration.GetConnectionString("MainStr")
                 : _configuration.GetConnectionString("local");

@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.Mvc.Filters;
 using NetAdminLte.Common;
 using NetAdminLte.Models;
 using NetAdminLte.Services;
-using System.Security.Claims;
+using Serilog;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text.Json;
 using WebApplicationTrial2.Models;
 
 namespace NetAdminLte.Controllers;
@@ -33,35 +36,34 @@ public class AuthController : Controller
         return View("~/Pages/Auth/Index.cshtml");
     }
 
+
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginViewModel loginViewModel)
     {
         var result = await _authService.LoginAsync(loginViewModel);
+
         if (result != null && result.Any())
         {
-            var user = result.First(); 
-            var claimsIdentity = new ClaimsIdentity(
-                Enumerable.Empty<Claim>(),
-                CookieAuthenticationDefaults.AuthenticationScheme
-            );
-
-            var authProperties = new AuthenticationProperties
+            var response = result[0];
+            var statusCode = int.Parse(response.statusCode);
+            var msg = response.msg;
+            if (statusCode == 200)
             {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            return RedirectToAction("Index", "Dashboard");
+                if (response.data is IEnumerable<ResultResponse> dataList)
+                {
+                    var checkData = dataList.ToList();
+                    return Ok(checkData);
+                }
+                return Ok(response.data);
+            }
+            else
+            {
+                return StatusCode(statusCode, msg);
+            }
         }
-        else
-        {
-            TempData["Error"] = "Invalid username or password";
-            return RedirectToAction("Index", "Auth");
-        }
+
+        return BadRequest("Login failed or no data returned.");
     }
+
+
 }
