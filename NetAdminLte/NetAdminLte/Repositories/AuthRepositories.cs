@@ -28,21 +28,42 @@ public class AuthRepositories
     {
         var result = new List<ResultResponse>();
         string base64String = Convert.ToBase64String(Encoding.UTF8.GetBytes(loginView.Password));
+        _logger.LogInformation($"Logging from repo {base64String}");
         Log.Information($"Logging from repo {loginView.Username}");
         Debug.Print($"Logging from repo {base64String}");
-        var user = _dbContext.SystemUsers.FirstOrDefault(u => u.Name == loginView.Username && u.Passwd == base64String); 
+
+        //  
+        var user = _dbContext.SystemUsers
+            .Where(u => u.UserID == loginView.Username && u.Passwd == base64String)
+            .Select(u => new SystemUser
+            {
+                UserID = u.UserID,
+                Name = u.Name ?? string.Empty,
+                Passwd = u.Passwd ?? string.Empty,
+                SiteCode = u.SiteCode ?? string.Empty,
+                isUpdate = u.isUpdate,
+                Role = u.Role ?? string.Empty,
+                RoleLevel = u.RoleLevel ?? string.Empty,
+                SystemUserAccessNo = u.SystemUserAccessNo ?? string.Empty,
+                SystemUser_01 = u.SystemUser_01 ?? string.Empty,
+                SystemUser_02 = u.SystemUser_02 ?? string.Empty
+            })
+            .FirstOrDefault(); 
+
+
         if (user != null)
         {
+            _logger.LogInformation($"Remote status db connection {user.Name}");
 
             var userList = new List<SystemUser> { user };
             
             foreach (var item in userList)
             {
                 // Cek data, debug, atau logging    
-                Log.Information($"Remote status db connection {item.Name}");
-                Debug.Print($"Remote status db connection {item.Name}");
-                Debug.WriteLine($"Remote status db connection {item.UserID}");
-                Debug.Write($"Remote status db connection {item.Passwd}");
+                Log.Information($"FOREACH status db connection {item.UserID}");
+                Log.Information($"FOREACH status db connection {item.Passwd}");
+                Debug.Print($"FOREACH status db connection {item.Passwd}");
+                Debug.Print($"FOREACH status db connection {item.UserID}");
             }
 
             var cookieOptions = new CookieOptions

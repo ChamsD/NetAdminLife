@@ -5,13 +5,14 @@ namespace NetAdminLte.Models;
 public class SystemUser
 {
     [Key]
-    public string UserID { get; set; }
-    public string Passwd { get; set; }
-    public string SiteCode { get; set; }
-    public string Name { get; set; }
-    public string Role { get; set; }
-    public string RoleLevel { get; set; }
-    public string SystemUserAccessNo { get; set; }
+    public string UserID { get; set; } = string.Empty;
+    public string Passwd { get; set; } = string.Empty;  
+    public string SiteCode { get; set; } = string.Empty;
+    [NotMapped]
+    public string Name { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string RoleLevel { get; set; } = string.Empty;
+    public string SystemUserAccessNo { get; set; } = string.Empty;
     [NotMapped]
     public string SystemUser_01 { get; set; }
     [NotMapped]
@@ -42,5 +43,6 @@ public class SystemUser
     public string SystemUser_14 { get; set; }
     [NotMapped]
     public string SystemUser_15 { get; set; }
+    [NotMapped]
     public bool isUpdate { get; set; }
 }

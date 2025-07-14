@@ -4,11 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using NetAdminLte.Common;
 using NetAdminLte.Models;
-using NetAdminLte.Services;
-using Serilog;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text.Json;
+using NetAdminLte.Services;  
 using WebApplicationTrial2.Models;
 
 namespace NetAdminLte.Controllers;
@@ -54,13 +50,16 @@ public class AuthController : Controller
                 if (response.data is IEnumerable<ResultResponse> dataList)
                 {
                     var checkData = dataList.ToList();
-                    return Ok(checkData);
+                    // return Ok(checkData);
+                    return Redirect("Dashboard");
                 }
-                return Ok(response.data);
+                // return Ok(response.data);
             }
             else
             {
-                return StatusCode(statusCode, msg);
+                // return StatusCode(statusCode, msg);
+                ViewData["Msg"] = "Invalid password username not recorded!";
+                return View("~/Pages/Auth/Index.cshtml");
             }
         }
 
