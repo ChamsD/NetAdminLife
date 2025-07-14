@@ -49,9 +49,10 @@ public class AuthController : Controller
             {
                 if (response.data is IEnumerable<ResultResponse> dataList)
                 {
+                    ViewData["title"] = "Auth Security | Vault";
                     var checkData = dataList.ToList();
                     // return Ok(checkData);
-                    return Redirect("Dashboard");
+                    return Redirect("/Dashboard");
                 }
                 // return Ok(response.data);
             }
@@ -66,5 +67,16 @@ public class AuthController : Controller
         return BadRequest("Login failed or no data returned.");
     }
 
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(LoginViewModel loginViewModel)
+    { 
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        Response.Cookies.Delete("AuthToken");
+        foreach (var cookie in Request.Cookies.Keys)
+        {
+            Response.Cookies.Delete(cookie);
+        } 
+        return RedirectToAction("Index", "Auth");
+    }
 
 }
