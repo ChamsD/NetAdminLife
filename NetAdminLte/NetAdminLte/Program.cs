@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetAdminLte.Common;
 using NetAdminLte.Repositories;
@@ -12,8 +13,7 @@ Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "Logs"));
 
 try
 {
-
-
+    // Logger configuration
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -24,21 +24,11 @@ try
             retainedFileCountLimit: 7)
         .Enrich.FromLogContext()
         .CreateLogger();
+
     var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog();
 
-    builder.Host.UseSerilog((context, services, configuration) =>
-    {
-        configuration
-            .MinimumLevel.Debug()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .WriteTo.File(
-                Path.Combine(AppContext.BaseDirectory, "Logs", "log-.txt"),
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 7);
-    });
-
+    // Authentication setup
     builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
         .AddCookie(options =>
         {
@@ -47,69 +37,12 @@ try
             options.ExpireTimeSpan = TimeSpan.FromDays(7);
         });
 
-    IConfiguration config = builder.Configuration;
-    string connectionString = string.Empty;
-    string xmlFilePath = Path.Combine(Directory.GetCurrentDirectory(), "Configurations", "Database-DEV.config");
+    // Connection string resolution with fallback logic
+    string connectionString = await GetConnectionStringWithFallback();
 
-    if (File.Exists(xmlFilePath))
-    {
-        try
-        {
-            config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddXmlFile(xmlFilePath, optional: false, reloadOnChange: true)
-                .Build();
-            Log.Information(config.ToString());
-            Debug.Print(config.ToString());
-            Debug.WriteLine(config.ToString());
-            Debug.Write(config.ToString());
-
-            string useRemote = Environment.GetEnvironmentVariable("USE_REMOTE");
-            Log.Information($"Remote status db connection {useRemote}"); 
-            Debug.Print($"Remote status db connection {useRemote}");
-            Debug.WriteLine($"Remote status db connection {useRemote}");
-            Debug.Write($"Remote status db connection {useRemote}");
-            string connStr = useRemote == "true" ? "MainStr" : "local";
-            connectionString = config.GetConnectionString(connStr) ??
-                               config.GetSection("connectionStrings:add")
-                                   .GetChildren()
-                                   .FirstOrDefault(x => x["name"] == connStr)?["connectionString"];
-            Log.Information(connectionString);
-            Log.Information($"Remote status db connection {connectionString}");
-            Debug.Print($"Remote status db connection {connectionString}");
-            Debug.WriteLine($"Remote status db connection {connectionString}");
-            Debug.Write($"Remote status db connection {connectionString}");
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error loading configuration from XML");
-        }
-    }
-
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        connectionString = config.GetConnectionString("MainStr");
-    }
-
-    if (string.IsNullOrEmpty(connectionString))
-    {
-        throw new InvalidOperationException("MainStr connection string is not configured in any configuration source.");
-    }
-
-    builder.Services.AddSingleton<IConfiguration>(config);
-
+    // Database configuration
     builder.Services.AddDbContext<AppDbContext>(options =>
     {
-        var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder
-                .AddConsole()
-                .AddSerilog() // Connect EF Core logging to Serilog
-                .SetMinimumLevel(LogLevel.Information); // Include SQL statements
-        });
-
-        options.UseLoggerFactory(loggerFactory);
         options.UseSqlServer(connectionString, sqlOptions =>
         {
             sqlOptions.EnableRetryOnFailure(
@@ -120,36 +53,31 @@ try
         options.EnableSensitiveDataLogging();
     });
 
+    // Additional services
     builder.Services.AddCors(opt => opt.AddPolicy("AllowAll", policy =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
-
-    builder.WebHost.UseWebRoot("wwwroot");
 
     builder.Services.AddSession(options =>
     {
         options.Cookie.Name = "MyApp.Session";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.IsEssential = true;
         options.IdleTimeout = TimeSpan.FromMinutes(20);
-        options.Cookie.SameSite = SameSiteMode.Strict;
     });
 
     builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "DataProtection-Keys")))
-        .SetApplicationName("MyApp")
-        .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "DataProtection-Keys")));
 
+    // Application services
     builder.Services.AddTransient<AuthService>();
     builder.Services.AddScoped<AuthRepositories>();
-    builder.Services.AddHttpClient();
     builder.Services.AddRazorPages();
-    builder.Services.AddServerSideBlazor(o => o.DetailedErrors = true);
+    builder.Services.AddServerSideBlazor();
     builder.Services.AddControllers();
-    builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
     var app = builder.Build();
 
+    // Middleware pipeline
     if (!app.Environment.IsDevelopment())
     {
         app.UseExceptionHandler("/Error");
@@ -159,7 +87,6 @@ try
     app.UseHttpsRedirection();
     app.UseStaticFiles();
     app.UseRouting();
-    app.UseSession();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapRazorPages();
@@ -175,4 +102,76 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
+}
+
+// Helper method for connection string with fallback
+async Task<string> GetConnectionStringWithFallback()
+{
+    string prodConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "Configurations", "Database-PROD.config");
+    string devConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "Configurations", "Database-DEV.config");
+
+    // Try production connection first
+    if (File.Exists(prodConfigPath))
+    {
+        try
+        {
+            var prodConfig = new ConfigurationBuilder()
+                .AddXmlFile(prodConfigPath)
+                .Build();
+
+            var prodConnection = prodConfig.GetConnectionString("MainStr");
+
+            if (await TestConnection(prodConnection))
+            {
+                Log.Information("Using PRODUCTION database connection");
+                return prodConnection;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"Production config failed: {ex.Message}");
+        }
+    }
+
+    // Fallback to development connection
+    if (File.Exists(devConfigPath))
+    {
+        try
+        {
+            var devConfig = new ConfigurationBuilder()
+                .AddXmlFile(devConfigPath)
+                .Build();
+
+            var devConnection = devConfig.GetConnectionString("local");
+
+            if (await TestConnection(devConnection))
+            {
+                Log.Warning("Falling back to DEVELOPMENT database connection");
+                return devConnection;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Development config failed: {ex.Message}");
+        }
+    }
+
+    throw new InvalidOperationException("No valid database connection could be established");
+}
+
+// Connection test method
+async Task<bool> TestConnection(string connectionString)
+{
+    if (string.IsNullOrEmpty(connectionString)) return false;
+
+    try
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
 }
