@@ -1,0 +1,8 @@
+﻿@page
+@model NetAdminLte.Pages.Card.IndexModel
+@{
+}
+@(await Html.RenderComponentAsync<Login>(RenderMode.Static, new {
+    RequestVerificationToken = ViewData["RequestVerificationToken"]?.ToString(),
+    TokenName = ViewData["TokenName"]?.ToString()
+}))

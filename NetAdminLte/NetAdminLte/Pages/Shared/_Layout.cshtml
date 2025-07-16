@@ -26,17 +26,22 @@
 
   @await Html.PartialAsync("_Style")
   </head>
-  
-  <body class="layout-fixed sidebar-expand-lg sidebar-collapse bg-body-tertiary">
-    
-    <div class="app-wrapper"> 
-        @await Html.PartialAsync("_Navbar")
-        @await Html.PartialAsync("_Aside")
-      <main class="app-main">
-        @RenderBody()
-      </main>
-      @await Html.PartialAsync("_Footer")
+
+<body class="layout-fixed sidebar-expand-lg sidebar-collapse bg-body-tertiary">
+    <div class="app-wrapper">
+        @* Passing object to _Navbar partial *@
+        @await Html.PartialAsync("_Navbar", layoutModel?.NavbarModel)
+
+        @* You can also pass other objects to other partials similarly *@
+        @await Html.PartialAsync("_Aside", layoutModel?.AsideModel)
+
+        <main class="app-main">
+            @RenderBody()
+        </main>
+
+        @await Html.PartialAsync("_Footer")
     </div>
     @await Html.PartialAsync("_Scripts")
 </body>
+
 </html>

@@ -43,6 +43,32 @@ public class DashboardController : Controller
         return View("~/Pages/Dashboard/Index.cshtml", model);
     }
 
+    [HttpGet("Master", Name = "Master")]
+    public IActionResult Master()
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "00";
+        var listMenu = _menusHirarki.GetMenu(); 
+        _logger.LogInformation($"DASH CONTROL 51 {listMenu?.Count}");
+        var model = new DashboardIndexModel
+        {
+            PageTitle = "Dashboard Overview",
+            NavbarModel = new NavbarViewModel
+            {
+                UserName = User.Identity?.Name,
+                UserRole = role,
+                navbarMenu = null
+            },
+            AsideModel = new AsideViewModel
+            {
+                MenuItems = GetMenuItemsBasedOnRole(role)
+            }
+        };
+
+        return View("~/Pages/Dashboard/Index.cshtml", model);
+    }
+
+
+
     private List<MenuItem> GetMenuItemsBasedOnRole(string? role)
     {
         var menuItems = new List<MenuItem>();
