@@ -4,7 +4,7 @@ using NetAdminLte.Services;
 using Serilog;
 using System.Diagnostics;
 using System.Text;
-using WebApplicationTrial2.Models;
+using NetAdminLte.Models;
 
 namespace NetAdminLte.Repositories;
 public class AuthRepositories
@@ -62,8 +62,10 @@ public class AuthRepositories
                 // Cek data, debug, atau logging    
                 Log.Information($"FOREACH status db connection {item.UserID}");
                 Log.Information($"FOREACH status db connection {item.Passwd}");
+                Log.Information($"FOREACH status db connection {item.RoleLevel}");
                 Debug.Print($"FOREACH status db connection {item.Passwd}");
                 Debug.Print($"FOREACH status db connection {item.UserID}");
+                Debug.Print($"FOREACH status db connection {item.RoleLevel}");
             }
 
             var cookieOptions = new CookieOptions

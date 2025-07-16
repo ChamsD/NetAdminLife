@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     }
     public DbSet<LoginViewModel> LoginViewModels { get; set; } = default!; 
     public DbSet<SystemUser> SystemUsers { get; set; } = default!;
+    public DbSet<MasterFunction> masterFunction { get; set; } = default!;
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -37,6 +39,7 @@ public class AppDbContext : DbContext
     {
         modelBuilder.Entity<LoginViewModel>().HasNoKey();
         modelBuilder.Entity<SystemUser>().ToTable("SystemUser");
+        modelBuilder.Entity<MasterFunction>().ToTable("Master_Function");
         base.OnModelCreating(modelBuilder);
     }
 }

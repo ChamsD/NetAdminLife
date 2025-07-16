@@ -1,36 +1,42 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using NetAdminLte.Common;
 using NetAdminLte.Repositories;
 using NetAdminLte.Services;
 using Serilog;
 using Serilog.Events;
-using System.Diagnostics;
 using System.Xml;
+using System.IO;
 
 try
 {
-    Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "Logs"));
+    var logDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Logs");
+    Directory.CreateDirectory(logDirectory);
+
+    string initialLogFile = Path.Combine(logDirectory, "log-init.txt");
+    if (!File.Exists(initialLogFile))
+    {
+        File.WriteAllText(initialLogFile, $"Log initialized at: {DateTime.Now}");
+    }
 
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
         .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
         .WriteTo.Console()
         .WriteTo.File(
-            Path.Combine(AppContext.BaseDirectory, "Logs", "log-.txt"),
+            Path.Combine(logDirectory, "log-.txt"),
             rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 7)
+            retainedFileCountLimit: 7,
+            shared: true,
+            flushToDiskInterval: TimeSpan.FromSeconds(1))
         .Enrich.FromLogContext()
         .CreateLogger();
 
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog();
 
-    // Add HttpContextAccessor first
     builder.Services.AddHttpContextAccessor();
 
     builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -68,13 +74,21 @@ try
         options.IdleTimeout = TimeSpan.FromMinutes(30);
     });
 
+    string protectionKeysDir = Path.Combine(AppContext.BaseDirectory, "DataProtection-Keys");
+    Directory.CreateDirectory(protectionKeysDir);
+
     builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "DataProtection-Keys")))
+        .PersistKeysToFileSystem(new DirectoryInfo(protectionKeysDir))
         .SetApplicationName("NetAdminLte");
 
-    // Register services after HttpContextAccessor
-    builder.Services.AddTransient<AuthService>();
+    
+    builder.Services.AddTransient<AuthService>(); // user auth
     builder.Services.AddScoped<AuthRepositories>();
+
+    builder.Services.AddTransient<MenusHirarkiServices>(); // menu listed data
+    builder.Services.AddScoped<MenuHirarki>();
+
+
 
     builder.Services.AddRazorPages();
     builder.Services.AddServerSideBlazor();
@@ -114,47 +128,44 @@ finally
 async Task<string> GetConnectionString(WebApplicationBuilder builder)
 {
     string configDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Configurations");
-    string configPath = Path.Combine(configDirectory, "Database-PROD.config");
+    Directory.CreateDirectory(configDirectory);
 
-    if (!File.Exists(configPath))
+    string configProd = Path.Combine(configDirectory, "Database-PROD.config");
+    string configDev = Path.Combine(configDirectory, "Database-DEV.config");
+
+    if (!File.Exists(configProd))
     {
-        throw new FileNotFoundException($"Configuration file not found: {configPath}");
+        throw new FileNotFoundException($"Configuration file not found: {configProd}");
     }
 
-    try
+    var xmlDocProd = new XmlDocument();
+    var xmlDocDev = new XmlDocument();
+
+    xmlDocProd.Load(configProd);
+    xmlDocDev.Load(configDev);
+
+    var conStringNodeProd = xmlDocProd.SelectSingleNode("//connectionStrings/add[@name='MainStr']");
+    var conStringNodeDev = xmlDocDev.SelectSingleNode("//connectionStrings/add[@name='local']");
+
+    if (conStringNodeProd == null || conStringNodeDev == null)
     {
-        var xmlDoc = new XmlDocument();
-        xmlDoc.Load(configPath);
-
-        var connectionStringNode = xmlDoc.SelectSingleNode("//connectionStrings/add[@name='MainStr']");
-        if (connectionStringNode == null)
-        {
-            connectionStringNode = xmlDoc.SelectSingleNode("//connectionStrings/add[@name='local']");
-        }
-
-        if (connectionStringNode == null)
-        {
-            throw new InvalidOperationException("No valid connection string found in configuration file");
-        }
-
-        string connectionString = connectionStringNode.Attributes["connectionString"].Value;
-
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException("Connection string is empty in configuration file");
-        }
-
-        if (await TestConnection(connectionString))
-        {
-            return connectionString;
-        }
-
-        throw new InvalidOperationException("Database connection test failed");
+        throw new InvalidOperationException("No valid connection string found in configuration file");
     }
-    catch (XmlException ex)
+
+    string conStringProd = conStringNodeProd.Attributes["connectionString"].Value;
+    string conStringDev = conStringNodeDev.Attributes["connectionString"].Value;
+
+    if (string.IsNullOrWhiteSpace(conStringProd) || string.IsNullOrWhiteSpace(conStringDev))
     {
-        throw new InvalidOperationException($"Invalid XML configuration file: {ex.Message}");
+        throw new InvalidOperationException("Connection string is empty in configuration file");
     }
+
+    if (await TestConnection(conStringProd))
+    {
+        return conStringProd;
+    }
+
+    return conStringDev;
 }
 
 async Task<bool> TestConnection(string connectionString)

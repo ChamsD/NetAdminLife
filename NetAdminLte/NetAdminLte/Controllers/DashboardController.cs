@@ -1,27 +1,45 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// NetAdminLte.Controllers.DashboardController.cs
+using Microsoft.AspNetCore.Mvc;
 using NetAdminLte.Models;
+using NetAdminLte.Services;
 using System.Security.Claims;
 
 namespace NetAdminLte.Controllers;
 
-[Route("auth", Name = "Auth")]
+[Route("Dashboard")]
 public class DashboardController : Controller
 {
+    private readonly MenusHirarkiServices _menusHirarki;
+    private readonly ILogger<DashboardController> _logger;
+
+    public DashboardController(MenusHirarkiServices menusHirarki, ILogger<DashboardController> logger)
+    {
+        _menusHirarki = menusHirarki;
+        _logger = logger;
+    } 
+
+    [HttpGet("")]
     public IActionResult Index()
     {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "00";
+        var listMenu = _menusHirarki.GetMenu();
+        // var listMenu = _menusHirarki.GetMenuByRole(role);
+        _logger.LogInformation($"DASH CONTROL 27 {listMenu?.Count}");
         var model = new DashboardIndexModel
         {
             PageTitle = "Dashboard Overview",
             NavbarModel = new NavbarViewModel
             {
                 UserName = User.Identity?.Name,
-                UserRole = User.FindFirst(ClaimTypes.Role)?.Value
+                UserRole = role,
+                navbarMenu = null
             },
             AsideModel = new AsideViewModel
             {
-                MenuItems = GetMenuItemsBasedOnRole(User.FindFirst(ClaimTypes.Role)?.Value)
+                MenuItems = GetMenuItemsBasedOnRole(role)
             }
         };
+
         return View("~/Pages/Dashboard/Index.cshtml", model);
     }
 
@@ -44,3 +62,5 @@ public class DashboardController : Controller
         return menuItems;
     }
 }
+
+//

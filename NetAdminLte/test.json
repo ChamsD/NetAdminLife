@@ -1,0 +1,36 @@
+[
+    {
+        "ID": 1,
+        "ID_MENU": 100,
+        "NAME_MENU": "Dashboard",
+        "SHOWING_LABEL": "Dashboard Home",
+        "TYPE_MENU": "page",
+        "IS_ACTIVATED": true
+    },
+    {
+        "ID": 2,
+        "ID_MENU": 200,
+        "NAME_MENU": "Setup",
+        "SHOWING_LABEL": "System Setup",
+        "TYPE_MENU": "folder",
+        "IS_ACTIVATED": true,
+        "sub_menus": [
+            {
+                "ID": 3,
+                "ID_MENU": 200,
+                "NAME_MENU": "DoorController",
+                "SHOWING_LABEL": "Door Controller",
+                "TYPE_MENU": "page",
+                "IS_ACTIVATED": true
+            },
+            {
+                "ID": 4,
+                "ID_MENU": 200,
+                "NAME_MENU": "TimeSetting",
+                "SHOWING_LABEL": "Time Setting",
+                "TYPE_MENU": "page",
+                "IS_ACTIVATED": true
+            }
+        ]
+    }
+]
