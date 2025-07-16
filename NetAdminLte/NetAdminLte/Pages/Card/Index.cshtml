@@ -1,8 +1,108 @@
-﻿@page
-@model NetAdminLte.Pages.Card.IndexModel
-@{
+﻿<div class="container-fluid">
+    <h3>Card User List</h3>
+    <div class="btn-group" style="margin-bottom: 10px;">
+        <a href="#" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>New Card</span>
+        </a>
+        <a href="#" class="btn btn-primary">
+            <i class="fa-solid fa-user-plus" "></i>
+            <span>Batch Add</span>
+        </a>
+        <a href="#" class="btn btn-primary">
+            <i class="fa-solid fa-user-pen"></i>
+            <span>Edit</span>
+        </a>
+        <a href="#" class="btn btn-danger">
+            <i class="fa-solid fa-user-minus"></i>
+            <span>Delete</span>
+        </a>
+        <a href="/Dashboard" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back</span>
+        </a>
+        <a href="#" class="btn btn-primary">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>PDF</span>
+        </a>
+        <a href="#" class="btn btn-primary">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>XLS</span>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table id="UserList"> 
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" placeholder="" />
+                   </th>
+                   <th>
+                       Card No
+                   </th>
+                   <th>
+                       Name
+                   </th>
+                   <th>Staff No</th>
+                   <th>Vehicle No</th>
+                   <th>Due Day</th>
+                   <th>Expiry Date</th>
+                   <th>Joining Date</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        // Initialize DataTables
+        $('#UserList').DataTable({
+            responsive: true,
+            pageLength: 10,
+            columns: [
+                { orderable: false }, // Checkbox column
+                null, null, null, null, null, null, null
+            ]
+        });
+
+        // Master checkbox to toggle all row checkboxes
+        $('#UserList thead input[type="checkbox"]').on('change', function () {
+            var isChecked = $(this).prop('checked');
+            $('#UserList tbody input[type="checkbox"]').prop('checked', isChecked);
+        });
+
+        // Button group click actions
+        $('.btn-group a').on('click', function (e) {
+            e.preventDefault();
+            const action = $(this).find('span').text().trim();
+
+            switch (action) {
+                case 'New Card':
+                    alert('Add New Card logic here.');
+                    break;
+                case 'Batch Add':
+                    alert('Batch Add logic here.');
+                    break;
+                case 'Edit':
+                    alert('Edit selected logic.');
+                    break;
+                case 'Delete':
+                    alert('Delete selected logic.');
+                    break;
+                case 'Back':
+                    window.history.back();
+                    break;
+                case 'PDF':
+                    alert('Export to PDF logic.');
+                    break;
+                case 'XLS':
+                    alert('Export to Excel logic.');
+                    break;
+                default:
+                    console.warn('Unknown action:', action);
+            }
+        });
+    });
+    </script>
 }
-@(await Html.RenderComponentAsync<Login>(RenderMode.Static, new {
-    RequestVerificationToken = ViewData["RequestVerificationToken"]?.ToString(),
-    TokenName = ViewData["TokenName"]?.ToString()
-}))
