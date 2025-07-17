@@ -19,3 +19,15 @@
     height: 20px;
     color: transparent;
 }
+.custom-h3 {
+    padding-top: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+}
+.no-pad{
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
